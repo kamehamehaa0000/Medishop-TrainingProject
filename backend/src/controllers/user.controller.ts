@@ -196,4 +196,44 @@ const loginFace = asyncHandler(async (req: Request, res: Response) => {
     res.status(200).json({ user, token })
   } catch (error) {}
 })
-export { userSignup, googleLogin, addface, loginFace }
+const getUser = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const user = await User.findById(id).select('-password')
+  if (!user) {
+    throw new ApiError(404, 'User not found')
+  }
+  res.status(200).json(new ApiResponse(200, user, 'User fetched successfully'))
+})
+
+// Update username and profile picture
+const updateUser = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const { username } = req.body
+  const file = (req.file as Express.Multer.File) || undefined
+  const avatarLocalPath = file?.path || ''
+  try {
+    const user = await User.findById(id)
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+
+    if (username) {
+      user.username = username
+    }
+
+    if (avatarLocalPath) {
+      const avatarUrl: string = (await uploadToCloudinary(avatarLocalPath))?.url
+      user.avatar = avatarUrl
+    }
+
+    await user.save()
+    const updatedUser = await User.findById(id).select('-password')
+    res
+      .status(200)
+      .json(new ApiResponse(200, updatedUser, 'User updated successfully'))
+  } catch (error) {
+    throw new Error(`Error during user update, Error =  ${error}`)
+  }
+})
+
+export { userSignup, googleLogin, addface, loginFace, getUser, updateUser }

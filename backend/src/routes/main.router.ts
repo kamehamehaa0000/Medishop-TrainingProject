@@ -1,15 +1,12 @@
 import express from 'express'
 import userRouter from './user.router'
-import upload from '../config/multer'
-import {
-  addface,
-  googleLogin,
-  loginFace,
-  userSignup,
-} from '../controllers/user.controller'
+import { productRouter } from './product.router'
+import { cartRouter } from './cart.router'
+import { orderRouter } from './order.router'
+
 const router = express.Router()
-router.post('/user/signup', upload.single('avatar'), userSignup)
-router.post('/user/google', googleLogin)
-router.post('/user/add-face', upload.single('addFace'), addface)
-router.post('/user/login-face', upload.single('loginFace'), loginFace)
+router.use('/user', userRouter)
+router.use('/product', productRouter)
+router.use('/cart', cartRouter)
+router.use('/order', orderRouter)
 export { router as mainRouter }

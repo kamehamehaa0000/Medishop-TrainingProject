@@ -1,14 +1,15 @@
 import mongoose, { Schema } from 'mongoose'
 import bcrypt from 'bcrypt'
 export interface IUser extends Document {
+  _id: string
   firstName: string
   lastName: string
   username: string
-  password?: string // Optional for OAuth
+  password?: string
   avatar: string
   email: string
   faceDescriptors?: any
-  googleId?: string // Optional for OAuth
+  googleId?: string
 }
 
 const userSchema = new Schema<IUser>(
@@ -27,7 +28,6 @@ const userSchema = new Schema<IUser>(
       max: [40, 'Max length of password should be 40.'],
       validate: {
         validator: function (value: string) {
-          // `password` should be required if a user is created traditionally
           return this.googleId || value != null
         },
         message: 'Password is required for traditional signups.',

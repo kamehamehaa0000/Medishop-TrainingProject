@@ -1,6 +1,6 @@
 import React from 'react'
 import { BsCart3 } from 'react-icons/bs'
-
+import { Link, useNavigate } from 'react-router-dom'
 const ProductCard = ({
   img = 'https://www.checkers.co.za/medias/10618226EA-checkers515Wx515H?context=bWFzdGVyfGltYWdlc3wxOTU4OTl8aW1hZ2UvcG5nfGltYWdlcy9oNjMvaDk3LzkwNTUwNjMyMTIwNjIucG5nfGYxNGNkY2IzMjcyYjkyYzg0YjgwYTI5ZmEwYmM2ZDBlYjllMDVhYjNjM2Y0ZDY5YThmYzFjYjQ2OWY4NzQ0ZmU',
   brand = 'Cipla',
@@ -12,6 +12,7 @@ const ProductCard = ({
   bgColor = '#9FE870',
   rating,
 }) => {
+  const navigate = useNavigate()
   return (
     <div
       style={{ backgroundColor: bgColor }}
@@ -41,10 +42,11 @@ const ProductCard = ({
           <h3 className="text-gray-400 font-semibold text-sm">{brand}</h3>
           <div className="text-yellow-500 text-sm ">★ 4.5</div>
         </div>
-
-        <h2 className="text-left text-zinc-800 text-sm font-semibold ">
-          {title}
-        </h2>
+        <Link to="/product">
+          <h2 className="text-left text-zinc-800 text-sm font-semibold ">
+            {title}
+          </h2>
+        </Link>
         <h3 className="text-sm text-left font-semibold my-1 ">{category}</h3>
         <div className=" text-base w-full text-left inline-block font-semibold text-gray-900">
           <span className="line-through font-light text-gray-500 text-sm">
