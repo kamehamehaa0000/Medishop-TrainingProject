@@ -7,7 +7,7 @@ const TextInput = ({ label, type, placeholder, value, onChange, required }) => {
   }
   return (
     <div className="">
-      <p className="font-semibold">{label} :</p>
+      <p className="font-semibold text-zinc-200 ">{label} </p>
       {type === 'password' ? (
         <div className="flex items-center justify-between  border-black rounded-lg p-[2px] my-2">
           <input
@@ -19,7 +19,7 @@ const TextInput = ({ label, type, placeholder, value, onChange, required }) => {
             required={required}
           />
           <button
-            className="p-2 dark:border-[1px] bg-white text-black mx-1 rounded-lg dark:bg-black dark:text-white "
+            className="p-2 mx-1 rounded-lg bg-[#202020] text-white "
             onClick={() => {
               setSeePass((prev) => !prev)
             }}

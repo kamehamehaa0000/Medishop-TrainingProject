@@ -24,6 +24,9 @@ const Navbar = () => {
       setResults([])
     }
   }, [debouncedSearch])
+  const [isOpen, setIsOpen] = React.useState(false)
+
+  const [openChart, setOpenChart] = React.useState(false)
 
   return (
     <div className="flex relative w-full items-center mb-5 justify-between px-4 bg-[#F6F7F8] h-16 rounded-2xl">
@@ -39,10 +42,13 @@ const Navbar = () => {
       </div>
 
       <div className="flex text-lg mr-2">
-        <div className="mx-2 text-green-500 flex items-center">
+        <button
+          onClick={() => setOpenChart(!openChart)}
+          className="mx-2 cursor-pointer text-green-500 flex items-center"
+        >
           <BsCart2 className="mx-2 text-xl" />
           <h1 className="hidden sm:block">Cart </h1>
-        </div>
+        </button>
         <Link to="/signin ">
           <button className="text-xl text-orange-500  flex items-center">
             <IoPersonOutline className="mx-2 text-xl" />
@@ -51,7 +57,8 @@ const Navbar = () => {
           </button>{' '}
         </Link>
       </div>
-      {/* Show search only when search state is not empty */}
+      <CartOverlay openChart={openChart} setOpenChart={setOpenChart} />
+
       {search ? <Results results={results} /> : <></>}
     </div>
   )
@@ -76,7 +83,7 @@ const Search = ({ input, setInput }) => {
           <svg
             viewBox="0 0 20 20"
             aria-hidden="true"
-            class="pointer-events-none absolute w-5 fill-gray-500 transition"
+            className="pointer-events-none absolute w-5 fill-gray-500 transition"
           >
             <path d="M16.72 17.78a.75.75 0 1 0 1.06-1.06l-1.06 1.06ZM9 14.5A5.5 5.5 0 0 1 3.5 9H2a7 7 0 0 0 7 7v-1.5ZM3.5 9A5.5 5.5 0 0 1 9 3.5V2a7 7 0 0 0-7 7h1.5ZM9 3.5A5.5 5.5 0 0 1 14.5 9H16a7 7 0 0 0-7-7v1.5Zm3.89 10.45 3.83 3.83 1.06-1.06-3.83-3.83-1.06 1.06ZM14.5 9a5.48 5.48 0 0 1-1.61 3.89l1.06 1.06A6.98 6.98 0 0 0 16 9h-1.5Zm-1.61 3.89A5.48 5.48 0 0 1 9 14.5V16a6.98 6.98 0 0 0 4.95-2.05l-1.06-1.06Z"></path>
           </svg>
@@ -104,6 +111,32 @@ const Results = ({ results }) => {
       ) : (
         <div className="p-4 text-center text-gray-500">No results found</div>
       )}
+    </div>
+  )
+}
+const CartOverlay = ({ openChart, setOpenChart }) => {
+  function handleOverlayClick(event) {
+    if (event.target == event.currentTarget) {
+      setOpenChart(false)
+    }
+  }
+  return (
+    <div
+      onClick={handleOverlayClick}
+      style={{ display: openChart ? 'block' : '' }}
+      className="z-[99] hidden absolute  top-0 left-0 w-full h-full"
+    >
+      <div className="w-96 border bg-[#F6F7F8] absolute max-sm:left-0 max-sm:right-0 max-sm:mx-auto max-sm:top-[80px] max-sm:w-9/12 h-fit top-[70px] right-[30px] rounded-md">
+        <h2 className="border-b p-4 text-base font-bold">Cart</h2>
+        <div className="p-4">
+          <li>Here will come the cart's Content</li>
+        </div>
+        <Link to="/cart">
+          <h1 className="text-sm text-blue-500 font-semibold px-4">
+            Goto Cart Page
+          </h1>
+        </Link>
+      </div>
     </div>
   )
 }

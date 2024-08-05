@@ -17,7 +17,7 @@ const FormSignup = () => {
   }
   return (
     <div className=" flex flex-col text-white  rounded-2xl  justify-center items-center">
-      <h1 className="font-semibold text-center text-2xl">
+      <h1 className="font-semibold text-center mb-3 text-2xl">
         Create an Account on Medishop
       </h1>
 
@@ -61,7 +61,7 @@ const FormSignup = () => {
         />
 
         <div className="flex items-center justify-between mt-4">
-          <h5 className="text-sm group">
+          <h5 className="text-sm group mr-4">
             Already Have an account?{' '}
             <Link
               to={'/signin'}

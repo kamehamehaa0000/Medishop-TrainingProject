@@ -7,6 +7,7 @@ import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 import ProductDetails from './pages/ProductDetails'
+import NotFound from './pages/404/NotFound'
 const App = () => {
   const [loginModalIsClose, setLoginModalIsClose] = useState(true)
   const [signUpModalIsClose, setSignupModalIsClose] = useState(true)
@@ -26,7 +27,7 @@ const App = () => {
             setLoginModalIsClose,
           }}
         >
-          <div className="w-full min-h-screen overflow-x-hidden text-xl p-2 sm:p-10 pb-2 dark:bg-zinc-900 font-[gilroy]">
+          <div className="w-full min-h-screen overflow-x-hidden text-xl p-2 sm:p-10 pb-2  font-[gilroy]">
             <Navbar />
             <Routes>
               <Route exact path="/" element={<LandingPage />} />
@@ -34,6 +35,8 @@ const App = () => {
               <Route exact path="/signup" element={<SignupPage />} />
               <Route exact path="/signin" element={<LoginPage />} />
               <Route exact path="/product" element={<ProductDetails />} />
+              <Route exact path="/cart" element={<ProductDetails />} />
+              <Route exact path="*" element={<NotFound />} />
             </Routes>{' '}
           </div>{' '}
         </modalContext.Provider>
