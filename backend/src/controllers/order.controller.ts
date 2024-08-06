@@ -4,68 +4,115 @@ import ApiError from '../utilities/ErrorHandler'
 import ApiResponse from '../utilities/ResponseHandler'
 import { Order } from '../models/order.model'
 import { Cart } from '../models/cart.model'
-import Stripe from 'stripe'
+import Razorpay from 'razorpay'
+import crypto from 'crypto'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
+interface AuthRequest extends Request {
+  user?: { userId: string }
+}
+const razorKeyId = process.env.RAZORPAY_KEY_ID
+  ? process.env.RAZORPAY_KEY_ID
+  : ''
+const razorSecret = process.env.RAZORPAY_KEY_SECRET
+  ? process.env.RAZORPAY_KEY_SECRET
+  : ''
+const razorpay = new Razorpay({
+  key_id: razorKeyId,
+  key_secret: razorSecret,
 })
 
-const createOrder = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.body
-  const cart = await Cart.findOne({ user: userId }).populate('items.product')
-  if (!cart) {
-    throw new ApiError(404, 'Cart not found')
-  }
+const createOrder = asyncHandler(
+  async (req: Request | AuthRequest, res: Response) => {
+    let userId = (req as AuthRequest).user?.userId || ''
+    const cart = await Cart.findOne({ user: userId }).populate('items.product')
+    try {
+      if (!cart) {
+        throw new ApiError(404, 'Cart not found')
+      }
 
-  const totalPrice = cart.items.reduce((sum, item) => {
-    return sum + (item.product as any).price * item.quantity
-  }, 0)
+      const totalPrice = cart.items.reduce((sum, item) => {
+        const product = item.product as any
+        const discount = product.offerPercentage || 0
+        const discountedPrice = product.price * (1 - discount / 100)
+        return sum + discountedPrice * item.quantity
+      }, 0)
+      const options = {
+        amount: totalPrice * 100,
+        currency: 'INR',
+        receipt: `receipt_order_${new Date().getTime()}`,
+        notes: {
+          userId: userId.toString(),
+        },
+      }
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: totalPrice * 100,
-    currency: 'inr',
-    metadata: { userId: userId.toString() },
-  })
+      const razorpayOrder = await razorpay.orders.create(options)
+      console.log(razorpayOrder)
 
-  const order = new Order({
-    user: userId,
-    items: cart.items,
-    totalPrice,
-    status: 'Pending',
-    paymentIntentId: paymentIntent.id,
-  })
+      const order = new Order({
+        user: userId,
+        items: cart.items,
+        totalPrice,
+        status: 'Pending',
+        paymentIntentId: razorpayOrder.id,
+      })
 
-  await order.save()
-  await Cart.findByIdAndDelete(cart._id)
-  res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { order, clientSecret: paymentIntent.client_secret },
-        'Order created successfully'
+      await order.save()
+
+      res.status(200).json(
+        new ApiResponse(
+          200,
+          {
+            order,
+            razorpayOrderId: razorpayOrder.id,
+            amount: razorpayOrder.amount,
+            currency: razorpayOrder.currency,
+          },
+          'Order created successfully'
+        )
       )
-    )
-})
-
-const completeOrder = asyncHandler(async (req: Request, res: Response) => {
-  const { orderId, paymentIntentId } = req.body
-  const order = await Order.findById(orderId)
-  if (!order) {
-    throw new ApiError(404, 'Order not found')
+    } catch (error) {
+      throw new ApiError(500, 'order creation failed')
+      console.log(error)
+    }
   }
+)
 
-  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
-  if (paymentIntent.status !== 'succeeded') {
-    throw new ApiError(400, 'Payment not successful')
+const completeOrder = asyncHandler(
+  async (req: Request | AuthRequest, res: Response) => {
+    const { orderId, paymentId, signature } = req.body
+    let userId = (req as AuthRequest).user?.userId || ''
+
+    const order = await Order.findById(orderId)
+    if (!order) {
+      throw new ApiError(404, 'Order not found')
+    }
+
+    const body = order.paymentIntentId + '|' + paymentId
+    const cart = await Cart.findOne({ user: userId }).populate('items.product')
+
+    // Generate expected signature using HMAC SHA256
+    const hmac = crypto.createHmac('sha256', razorSecret)
+    hmac.update(body)
+    const expectedSignature = hmac.digest('hex')
+
+    // Validate the signature
+    if (expectedSignature !== signature) {
+      throw new ApiError(400, 'Payment verification failed')
+    }
+
+    order.status = 'Completed'
+    if (cart) {
+      cart.items = []
+      await cart.save()
+    }
+
+    await order.save()
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, order, 'Order completed successfully'))
   }
-
-  order.status = 'Completed'
-  await order.save()
-  res
-    .status(200)
-    .json(new ApiResponse(200, order, 'Order completed successfully'))
-})
+)
 
 const getOrder = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params
@@ -77,4 +124,32 @@ const getOrder = asyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .json(new ApiResponse(200, order, 'Order fetched successfully'))
 })
-export { createOrder, completeOrder, getOrder }
+
+const getAllUserOrder = asyncHandler(
+  async (req: AuthRequest | Request, res: Response) => {
+    const userId = (req as AuthRequest).user?.userId
+    if (!userId) {
+      throw new ApiError(401, 'User not authenticated')
+    }
+
+    const orders = await Order.find({ user: userId }).populate('items.product')
+    if (!orders.length) {
+      throw new ApiError(404, 'No orders found for this user')
+    }
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, orders, 'Orders fetched successfully'))
+  }
+)
+
+const getAllOrders = asyncHandler(async (req: Request, res: Response) => {
+  const orders = await Order.find().populate('items.product')
+  if (!orders.length) {
+    throw new ApiError(404, 'No orders found')
+  }
+  res
+    .status(200)
+    .json(new ApiResponse(200, orders, 'Orders fetched successfully'))
+})
+export { createOrder, completeOrder, getOrder, getAllOrders, getAllUserOrder }

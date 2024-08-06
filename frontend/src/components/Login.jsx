@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import TextInput from './shared/TextInput'
 import { GoogleLogin } from '@react-oauth/google'
 import { Link, useNavigate } from 'react-router-dom'
-
+import globalContext from '../contexts/globalContext.jsx'
+import axios from 'axios'
 const FormLogin = () => {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -10,6 +11,22 @@ const FormLogin = () => {
   const dataToSend = {
     email: email.trim().toLowerCase(),
     password,
+  }
+  const { token, setToken } = useContext(globalContext)
+  const handleSignin = async () => {
+    const res = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/user/signin`,
+      {
+        email: email.trim().toLowerCase(),
+        password,
+      },
+      {
+        withCredentials: true,
+      }
+    )
+    console.log(res)
+    setToken(res.data.data.token)
+    navigate('/home')
   }
   return (
     <div className="  flex flex-col w-fit  text-white justify-center items-center">
@@ -27,7 +44,11 @@ const FormLogin = () => {
                   withCredentials: true,
                 }
               )
-              // Handle success (e.g., save token, redirect, etc.)
+              navigate('/home')
+
+              setToken(res.data.data.token)
+              console.log(token)
+
               console.log('User authenticated successfully', res.data)
             } catch (error) {
               console.error('Google authentication failed', error)
@@ -70,7 +91,7 @@ const FormLogin = () => {
           </h5>
           <button
             className="relative w-[150px]  my-4  px-4 py-1 rounded-full bg-zinc-900 isolation-auto z-10 border-neutral-50 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-full before:bg-green-600 text-white before:-z-10 before:aspect-square before:hover:scale-150 overflow-hidden before:hover:duration-700"
-            onClick={() => alert('submitted')}
+            onClick={handleSignin}
           >
             Login
           </button>

@@ -5,14 +5,27 @@ import {
   deleteProduct,
   getAllProducts,
   getProductById,
+  searchProducts,
 } from '../controllers/product.controller'
 import authenticate from '../middlewares/userAuth.middleware'
+import upload from '../config/multer'
 
 const router = express.Router()
 router.get('/products', getAllProducts)
-router.get('/products/:id', getProductById)
-router.post('/product', authenticate, createProduct)
-router.put('/product/:productId', authenticate, updateProduct)
-router.delete('/product/:productId', authenticate, deleteProduct)
+router.get('/search', searchProducts)
+router.get('/:id', getProductById)
+router.post(
+  '/create',
+  authenticate,
+  upload.single('productImage'),
+  createProduct
+)
+router.put(
+  '/update/:productId',
+  authenticate,
+  upload.single('productImage'),
+  updateProduct
+)
+router.delete('/delete/:productId', authenticate, deleteProduct)
 
 export { router as productRouter }

@@ -1,12 +1,19 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { BsCart2 } from 'react-icons/bs'
-import { IoPersonOutline } from 'react-icons/io5'
-import { Link } from 'react-router-dom'
+import { IoClose, IoLogOutOutline, IoPersonOutline } from 'react-icons/io5'
+import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import globalContext from '../contexts/globalContext'
+import Cart from './Cart.jsx'
+import { useQueryClient } from 'react-query'
 const Navbar = () => {
   const [search, setSearch] = useState('')
   const [results, setResults] = useState([])
   const debouncedSearch = useDebounce(search, 500)
+  const [openChart, setOpenChart] = React.useState(false)
+  const { token, setToken, loading } = useContext(globalContext)
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   useEffect(() => {
     if (debouncedSearch) {
       const fetchData = async () => {
@@ -24,10 +31,22 @@ const Navbar = () => {
       setResults([])
     }
   }, [debouncedSearch])
-  const [isOpen, setIsOpen] = React.useState(false)
 
-  const [openChart, setOpenChart] = React.useState(false)
-
+  const handleLogout = async () => {
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/user/logout`,
+        {},
+        {
+          withCredentials: true,
+        }
+      )
+      setToken(null)
+      navigate('/signin')
+    } catch (error) {
+      alert('logout Failed')
+    }
+  }
   return (
     <div className="flex relative w-full items-center mb-5 justify-between px-4 bg-[#F6F7F8] h-16 rounded-2xl">
       <Link to={'/home'}>
@@ -49,13 +68,24 @@ const Navbar = () => {
           <BsCart2 className="mx-2 text-xl" />
           <h1 className="hidden sm:block">Cart </h1>
         </button>
-        <Link to="/signin ">
-          <button className="text-xl text-orange-500  flex items-center">
-            <IoPersonOutline className="mx-2 text-xl" />
+        {token ? (
+          <button
+            onClick={handleLogout}
+            className="text-xl text-orange-500  flex items-center"
+          >
+            <IoLogOutOutline className="mx-2 text-xl" />
 
-            <h1 className="hidden sm:block">Login </h1>
-          </button>{' '}
-        </Link>
+            <h1 className="hidden sm:block">Logout </h1>
+          </button>
+        ) : (
+          <Link to="/signin ">
+            <button className="text-xl text-orange-500  flex items-center">
+              <IoPersonOutline className="mx-2 text-xl" />
+
+              <h1 className="hidden sm:block">Login </h1>
+            </button>{' '}
+          </Link>
+        )}
       </div>
       <CartOverlay openChart={openChart} setOpenChart={setOpenChart} />
 
@@ -68,18 +98,18 @@ export default Navbar
 
 const Search = ({ input, setInput }) => {
   return (
-    <div class=" w-full bg-white rounded-2xl">
-      <div class="flex">
+    <div className=" w-full bg-white rounded-2xl">
+      <div className="flex">
         <div className="flex flex-col w-full justify-center">
           <input
             type="text"
-            class="w-full rounded-2xl bg-white pl-2 text-base text-gray-400 font-semibold outline-0"
+            className="w-full rounded-2xl bg-white pl-2 text-base text-gray-400 font-semibold outline-0"
             placeholder="Search"
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
         </div>
-        <div class="hidden sm:flex w-10 h-10 rounded-full items-center justify-center p-5  bg-[#9FE870] ">
+        <div className="hidden sm:flex w-10 h-10 rounded-full items-center justify-center p-5  bg-[#9FE870] ">
           <svg
             viewBox="0 0 20 20"
             aria-hidden="true"
@@ -120,22 +150,24 @@ const CartOverlay = ({ openChart, setOpenChart }) => {
       setOpenChart(false)
     }
   }
+  const queryClient = useQueryClient()
+  queryClient.invalidateQueries(['cart'])
   return (
     <div
       onClick={handleOverlayClick}
       style={{ display: openChart ? 'block' : '' }}
       className="z-[99] hidden absolute  top-0 left-0 w-full h-full"
     >
-      <div className="w-96 border bg-[#F6F7F8] absolute max-sm:left-0 max-sm:right-0 max-sm:mx-auto max-sm:top-[80px] max-sm:w-9/12 h-fit top-[70px] right-[30px] rounded-md">
-        <h2 className="border-b p-4 text-base font-bold">Cart</h2>
-        <div className="p-4">
-          <li>Here will come the cart's Content</li>
+      <div className="w-96 border bg-[#F6F7F8] absolute max-sm:left-0 max-sm:right-0 max-sm:mx-auto max-sm:top-[80px] max-sm:w-11/12 h-fit top-[70px] right-[30px] rounded-md">
+        <div className="flex items-center justify-between pr-4">
+          <h2 className="border-b p-4 w-fit text-base font-bold">Cart</h2>
+          <button onClick={() => setOpenChart((prev) => !prev)}>
+            <IoClose />
+          </button>
         </div>
-        <Link to="/cart">
-          <h1 className="text-sm text-blue-500 font-semibold px-4">
-            Goto Cart Page
-          </h1>
-        </Link>
+        <div className="p-2 sm:p-4">
+          <Cart />
+        </div>
       </div>
     </div>
   )

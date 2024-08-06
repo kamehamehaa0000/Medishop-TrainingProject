@@ -4,11 +4,12 @@ import {
   removeFromCart,
   getCart,
 } from '../controllers/cart.controller'
+import authenticate from '../middlewares/userAuth.middleware'
 
 const router = express.Router()
 
-router.get('/cart', getCart)
-router.post('/add', addToCart)
-router.post('/remove', removeFromCart)
+router.get('/getcart', authenticate, getCart)
+router.post('/add', authenticate, addToCart)
+router.post('/remove', authenticate, removeFromCart)
 
 export { router as cartRouter }

@@ -8,9 +8,10 @@ import { Request, response, Response } from 'express'
 import { z } from 'zod'
 import { uploadToCloudinary } from '../utilities/cloudinaryUtils'
 import { verifyGoogleToken } from '../utilities/Oauth'
-import { nanoid } from 'nanoid' // Or any other unique ID generator
-import * as faceapi from '@vladmandic/face-api'
-
+import { nanoid } from 'nanoid'
+interface AuthRequest extends Request {
+  user?: { userId: string }
+}
 const signupSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
@@ -31,7 +32,7 @@ const userSignup = asyncHandler(async (req: Request, res: Response) => {
     if (existingUser) {
       throw new ApiError(409, 'User Already exists')
     }
-    const hashedPassword = await bcrypt.hash(password, 10)
+
     const file = (req.file as Express.Multer.File) || undefined
     const avatarLocalPath = file?.path || ''
     if (!avatarLocalPath) {
@@ -43,7 +44,7 @@ const userSignup = asyncHandler(async (req: Request, res: Response) => {
       firstName,
       lastName,
       username,
-      password: hashedPassword,
+      password: password,
       avatar: avatarUrl,
       email,
     })
@@ -60,6 +61,7 @@ const userSignup = asyncHandler(async (req: Request, res: Response) => {
     )
   }
 })
+
 const generateUniqueUsername = (displayName: string | undefined) => {
   if (!displayName) {
     displayName = 'newUser'
@@ -123,87 +125,91 @@ const googleLogin = asyncHandler(async (req: Request, res: Response) => {
   }
 })
 
-const addface = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.body
-  const file = (req.file as Express.Multer.File) || undefined
-  const imageLocalPath = file?.path || ''
-  try {
-    if (!imageLocalPath) {
-      throw new ApiError(400, 'Avatar file is required or is invalid')
-    }
-    const faceidUrl: string = (await uploadToCloudinary(imageLocalPath))?.url
-    const img = await faceapi.fetchImage(faceidUrl)
-    const detections = await faceapi
-      .detectSingleFace(img)
-      .withFaceLandmarks()
-      .withFaceDescriptor()
+// const addface = asyncHandler(async (req: Request, res: Response) => {
+//   const { userId } = req.body
+//   const file = (req.file as Express.Multer.File) || undefined
+//   const imageLocalPath = file?.path || ''
+//   try {
+//     if (!imageLocalPath) {
+//       throw new ApiError(400, 'Avatar file is required or is invalid')
+//     }
+//     const faceidUrl: string = (await uploadToCloudinary(imageLocalPath))?.url
+//     const img = await faceapi.fetchImage(faceidUrl)
+//     const detections = await faceapi
+//       .detectSingleFace(img)
+//       .withFaceLandmarks()
+//       .withFaceDescriptor()
 
-    const user = await User.findById(userId)
+//     const user = await User.findById(userId)
+//     if (!user) {
+//       return res.status(404).json({ error: 'User not found' })
+//     }
+
+//     user.faceDescriptors = detections?.descriptor
+//     await user.save()
+//     res.status(200).json({ message: 'Face descriptors added successfully' })
+//   } catch (error) {
+//     console.log(error)
+//     throw new Error((error as Error).message)
+//   }
+// })
+// const loginFace = asyncHandler(async (req: Request, res: Response) => {
+//   const { userId } = req.body
+//   const file = (req.file as Express.Multer.File) || undefined
+//   const imageLocalPath = file?.path || ''
+//   try {
+//     if (!imageLocalPath) {
+//       throw new ApiError(400, 'Avatar file is required or is invalid')
+//     }
+//     const faceidUrl: string = (await uploadToCloudinary(imageLocalPath))?.url
+//     const img = await faceapi.fetchImage(faceidUrl)
+//     const detections = await faceapi
+//       .detectSingleFace(img)
+//       .withFaceLandmarks()
+//       .withFaceDescriptor()
+//     if (!detections) {
+//       return res.status(400).json(new ApiResponse(400, 'No face detected'))
+//     }
+//     const users = await User.find()
+//     const faceMatcher = new faceapi.FaceMatcher(
+//       users.map(
+//         (user) =>
+//           new faceapi.LabeledFaceDescriptors(user._id.toString(), [
+//             new Float32Array(user.faceDescriptors),
+//           ])
+//       )
+//     )
+
+//     const bestMatch = faceMatcher.findBestMatch(detections.descriptor)
+
+//     if (bestMatch.label === 'unknown') {
+//       return res.status(401).json({ error: 'Face not recognized' })
+//     }
+//     const user = await User.findById(bestMatch.label)
+//     const secret = process.env.JWT_SECRET
+
+//     if (!secret) {
+//       throw new Error('JWT_SECRET environment variable is not defined')
+//     }
+//     const token = jwt.sign({ userId: user?._id }, secret, {
+//       expiresIn: '4h',
+//     })
+//     res.cookie('token', token)
+//     res.status(200).json({ user, token })
+//   } catch (error) {}
+// })
+const getUser = asyncHandler(
+  async (req: Request | AuthRequest, res: Response) => {
+    const userId = (req as AuthRequest).user?.userId
+    const user = await User.findById(userId).select('-password')
     if (!user) {
-      return res.status(404).json({ error: 'User not found' })
+      throw new ApiError(404, 'User not found')
     }
-
-    user.faceDescriptors = detections?.descriptor
-    await user.save()
-    res.status(200).json({ message: 'Face descriptors added successfully' })
-  } catch (error) {
-    console.log(error)
-    throw new Error((error as Error).message)
+    res
+      .status(200)
+      .json(new ApiResponse(200, user, 'User fetched successfully'))
   }
-})
-const loginFace = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.body
-  const file = (req.file as Express.Multer.File) || undefined
-  const imageLocalPath = file?.path || ''
-  try {
-    if (!imageLocalPath) {
-      throw new ApiError(400, 'Avatar file is required or is invalid')
-    }
-    const faceidUrl: string = (await uploadToCloudinary(imageLocalPath))?.url
-    const img = await faceapi.fetchImage(faceidUrl)
-    const detections = await faceapi
-      .detectSingleFace(img)
-      .withFaceLandmarks()
-      .withFaceDescriptor()
-    if (!detections) {
-      return res.status(400).json(new ApiResponse(400, 'No face detected'))
-    }
-    const users = await User.find()
-    const faceMatcher = new faceapi.FaceMatcher(
-      users.map(
-        (user) =>
-          new faceapi.LabeledFaceDescriptors(user._id.toString(), [
-            new Float32Array(user.faceDescriptors),
-          ])
-      )
-    )
-
-    const bestMatch = faceMatcher.findBestMatch(detections.descriptor)
-
-    if (bestMatch.label === 'unknown') {
-      return res.status(401).json({ error: 'Face not recognized' })
-    }
-    const user = await User.findById(bestMatch.label)
-    const secret = process.env.JWT_SECRET
-
-    if (!secret) {
-      throw new Error('JWT_SECRET environment variable is not defined')
-    }
-    const token = jwt.sign({ userId: user?._id }, secret, {
-      expiresIn: '4h',
-    })
-    res.cookie('token', token)
-    res.status(200).json({ user, token })
-  } catch (error) {}
-})
-const getUser = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params
-  const user = await User.findById(id).select('-password')
-  if (!user) {
-    throw new ApiError(404, 'User not found')
-  }
-  res.status(200).json(new ApiResponse(200, user, 'User fetched successfully'))
-})
+)
 
 // Update username and profile picture
 const updateUser = asyncHandler(async (req: Request, res: Response) => {
@@ -235,5 +241,79 @@ const updateUser = asyncHandler(async (req: Request, res: Response) => {
     throw new Error(`Error during user update, Error =  ${error}`)
   }
 })
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(4).max(40),
+})
 
-export { userSignup, googleLogin, addface, loginFace, getUser, updateUser }
+const userLogin = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body
+
+  const parsedData = loginSchema.safeParse(req.body)
+  if (!parsedData.success) {
+    throw new ApiError(401, `Invalid Inputs: ${parsedData.error.message}`)
+  }
+
+  const user = await User.findOne({ email })
+  if (!user) {
+    throw new ApiError(401, 'Invalid email or password')
+  }
+  const isMatch = await user.isPasswordCorrect(password)
+
+  if (!isMatch) {
+    throw new ApiError(401, 'Invalid email or password')
+  }
+
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is not defined')
+  }
+
+  const token = jwt.sign({ userId: user._id }, secret, { expiresIn: '4h' })
+
+  res.cookie('token', token, { httpOnly: true })
+
+  const userWithoutPassword = await User.findById(user._id).select('-password')
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { user: userWithoutPassword, token },
+        'User logged in successfully'
+      )
+    )
+})
+const userLogout = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    console.log('logout ran')
+    res.cookie('token', '', {
+      httpOnly: true,
+    })
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, null, 'User logged out successfully'))
+  } catch (error) {
+    res.status(500).json({ error: 'Something went wrong during logout' })
+  }
+})
+
+const checkAuth = (req: Request, res: Response) => {
+  if (req.cookies.token) {
+    res.status(200).json({ token: req.cookies.token })
+  } else {
+    res.status(401).json({ message: 'Not authenticated' })
+  }
+}
+
+export {
+  checkAuth,
+  userLogout,
+  userSignup,
+  googleLogin,
+  getUser,
+  updateUser,
+  userLogin,
+}

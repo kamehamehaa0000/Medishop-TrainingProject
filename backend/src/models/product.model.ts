@@ -1,4 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose'
+import { bool } from 'sharp'
+import { boolean } from 'zod'
 
 export interface IProduct extends Document {
   name: string
@@ -9,6 +11,10 @@ export interface IProduct extends Document {
   imageUrl: string
   dosage: string
   directions: string
+  packOf: number
+  offerPercentage: number
+  available: boolean
+  brand: string
 }
 
 const productSchema = new Schema<IProduct>(
@@ -56,6 +62,13 @@ const productSchema = new Schema<IProduct>(
       type: String,
       required: true,
     },
+    brand: {
+      type: String,
+      required: true,
+    },
+    packOf: { type: Number, default: 1 },
+    offerPercentage: { type: Number, default: 0 },
+    available: { type: Boolean, default: true },
   },
   { timestamps: true }
 )

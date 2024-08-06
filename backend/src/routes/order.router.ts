@@ -4,11 +4,12 @@ import {
   completeOrder,
   getOrder,
 } from '../controllers/order.controller'
+import authenticate from '../middlewares/userAuth.middleware'
 
 const router = express.Router()
 
-router.get('/orders/:id', getOrder)
-router.post('/create', createOrder)
-router.post('/complete', completeOrder)
+router.get('/:id', authenticate, getOrder)
+router.post('/create', authenticate, createOrder)
+router.post('/complete', authenticate, completeOrder)
 
 export { router as orderRouter }

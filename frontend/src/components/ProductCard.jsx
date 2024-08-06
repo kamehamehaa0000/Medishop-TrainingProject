@@ -1,6 +1,8 @@
 import React from 'react'
 import { BsCart3 } from 'react-icons/bs'
 import { Link, useNavigate } from 'react-router-dom'
+import { useQueryClient } from 'react-query'
+
 const ProductCard = ({
   img = 'https://www.checkers.co.za/medias/10618226EA-checkers515Wx515H?context=bWFzdGVyfGltYWdlc3wxOTU4OTl8aW1hZ2UvcG5nfGltYWdlcy9oNjMvaDk3LzkwNTUwNjMyMTIwNjIucG5nfGYxNGNkY2IzMjcyYjkyYzg0YjgwYTI5ZmEwYmM2ZDBlYjllMDVhYjNjM2Y0ZDY5YThmYzFjYjQ2OWY4NzQ0ZmU',
   brand = 'Cipla',
@@ -9,10 +11,11 @@ const ProductCard = ({
   offer = 200,
   originalPrice = '213000',
   discountedPrice = '20000',
-  bgColor = '#9FE870',
-  rating,
+  bgColor,
+  _id,
+  handleAddToCart,
 }) => {
-  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   return (
     <div
       style={{ backgroundColor: bgColor }}
@@ -32,15 +35,19 @@ const ProductCard = ({
           alt={title}
           className="h-36 transition-all ease-in-out duration-500 hover:scale-125 mx-auto my-4 object-contain object-center"
         />{' '}
-        <button className="absolute bottom-0 right-0 mx-1 font-semibold text-[#083400] py-2 px-2 text-sm bg-[#9FE870]  rounded-full ">
+        <button
+          onClick={() => {
+            handleAddToCart(_id)
+          }}
+          className=" absolute bottom-0 right-0 mx-1 font-semibold text-[#083400] py-2 px-2 text-sm bg-[#9FE870]  rounded-full "
+        >
           <BsCart3 className="text-lg inline" />{' '}
-          <span className="text-xs">+</span>
+          <span className="text-xs ">+</span>
         </button>
       </div>
       <div className="rounde bg-[#FFFFFF] px-2 w-full">
         <div className="flex justify-between">
           <h3 className="text-gray-400 font-semibold text-sm">{brand}</h3>
-          <div className="text-yellow-500 text-sm ">★ 4.5</div>
         </div>
         <Link to="/product">
           <h2 className="text-left text-zinc-800 text-sm font-semibold ">

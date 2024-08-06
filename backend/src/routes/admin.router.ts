@@ -5,6 +5,6 @@ import authenticateAdmin from '../middlewares/adminAuth.middleware'
 const router = express.Router()
 
 router.put('/update', authenticateAdmin, updateAdmin)
-router.post('/admin/login', loginAdmin)
+router.post('/login', loginAdmin)
 
 export default router

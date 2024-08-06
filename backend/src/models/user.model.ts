@@ -1,5 +1,6 @@
-import mongoose, { Schema } from 'mongoose'
+import mongoose, { Schema, Document } from 'mongoose'
 import bcrypt from 'bcrypt'
+
 export interface IUser extends Document {
   _id: string
   firstName: string
@@ -10,6 +11,7 @@ export interface IUser extends Document {
   email: string
   faceDescriptors?: any
   googleId?: string
+  isPasswordCorrect: (password: string) => Promise<boolean>
 }
 
 const userSchema = new Schema<IUser>(
@@ -40,16 +42,37 @@ const userSchema = new Schema<IUser>(
   },
   { timestamps: true }
 )
+
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password') || !this.password) {
     return next()
   }
-  this.password = await bcrypt.hash(this.password, 10)
+  try {
+    console.log('Hashing password before saving...')
+    const salt = await bcrypt.genSalt(10)
+    this.password = await bcrypt.hash(this.password, salt)
+    console.log('Password hashed:', this.password)
+    next()
+  } catch (err: any) {
+    next(err)
+  }
 })
+
 userSchema.methods.isPasswordCorrect = async function (password: string) {
-  return await bcrypt.compare(password, this.password)
+  if (!this.password) {
+    return false
+  }
+  console.log(
+    'Comparing password:',
+    password,
+    'with hashed password:',
+    this.password
+  )
+  const isMatch = await bcrypt.compare(password, this.password)
+  console.log('Password comparison result:', isMatch)
+  return isMatch
 }
 
-const User = mongoose.model('User', userSchema)
+const User = mongoose.model<IUser>('User', userSchema)
 
 export { User }
