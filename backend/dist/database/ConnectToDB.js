@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 require("../config/env");
+const admin_model_1 = require("../models/admin.model");
 const uri = process.env.MONGO_URI;
 function ConnectToDatabase() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -22,6 +23,15 @@ function ConnectToDatabase() {
                 yield mongoose_1.default.connect(uri).catch((err) => {
                     throw new Error(err.message);
                 });
+                const adminCount = yield admin_model_1.Admin.countDocuments();
+                if (adminCount === 0) {
+                    const defaultAdmin = new admin_model_1.Admin({
+                        username: 'admin',
+                        password: 'mypass123',
+                    });
+                    yield defaultAdmin.save();
+                    console.log('Default admin created');
+                }
                 console.log(mongoose_1.default.connection.readyState
                     ? 'Successfully Connected To Database !!'
                     : 'NOT CONNECTED TO DATABASE');

@@ -4,13 +4,14 @@ import Loader from './shared/Loader'
 import { IoIosAdd, IoIosRemove } from 'react-icons/io'
 import Checkout from '../pages/Checkout'
 import { useQueryClient } from 'react-query'
+import { useNavigate } from 'react-router-dom'
 
 const Cart = () => {
   const { data: cart, isLoading, isError } = useCart()
   const { mutate: removeFromCart } = useRemoveFromCart()
   const { mutate: addToCart } = useAddToCart()
   const queryClient = useQueryClient()
-
+  const navigate = useNavigate()
   if (isLoading) {
     return (
       <div className="w-full p-4">
@@ -78,7 +79,12 @@ const Cart = () => {
 
       {total ? (
         <div className="flex mt-4 items-center w-full justify-between">
-          <Checkout />
+          <button
+            onClick={() => navigate('/checkout')}
+            className="bg-blue-500 text-base font-semibold py-1 px-2 text-white rounded-lg"
+          >
+            Checkout
+          </button>
           <h1 className="text-base my-2 w-fit font-semibold">
             Total Price - Rs. {total}
           </h1>

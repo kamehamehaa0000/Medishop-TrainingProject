@@ -11,6 +11,10 @@ export interface IOrder extends Document {
   totalPrice: number
   status: string
   paymentIntentId: string
+  deliveryAddress: string
+  pincode: string
+  city: string
+  state: string
 }
 
 const orderItemSchema = new Schema<IOrderItem>({
@@ -25,6 +29,10 @@ const orderSchema = new Schema<IOrder>(
     totalPrice: { type: Number, required: true },
     status: { type: String, required: true, default: 'Pending' },
     paymentIntentId: { type: String, required: true },
+    deliveryAddress: { type: String, required: true },
+    pincode: { type: String, required: true },
+    state: { type: String, required: true },
+    city: { type: String, required: true },
   },
   { timestamps: true }
 )

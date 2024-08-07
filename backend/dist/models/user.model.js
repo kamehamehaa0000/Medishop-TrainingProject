@@ -53,7 +53,6 @@ const userSchema = new mongoose_1.Schema({
         max: [40, 'Max length of password should be 40.'],
         validate: {
             validator: function (value) {
-                // `password` should be required if a user is created traditionally
                 return this.googleId || value != null;
             },
             message: 'Password is required for traditional signups.',
@@ -61,7 +60,7 @@ const userSchema = new mongoose_1.Schema({
     },
     avatar: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    faceIdImg: { type: String },
+    faceDescriptors: { type: Array },
     googleId: { type: String },
 }, { timestamps: true });
 userSchema.pre('save', function (next) {
@@ -69,12 +68,27 @@ userSchema.pre('save', function (next) {
         if (!this.isModified('password') || !this.password) {
             return next();
         }
-        this.password = yield bcrypt_1.default.hash(this.password, 10);
+        try {
+            console.log('Hashing password before saving...');
+            const salt = yield bcrypt_1.default.genSalt(10);
+            this.password = yield bcrypt_1.default.hash(this.password, salt);
+            console.log('Password hashed:', this.password);
+            next();
+        }
+        catch (err) {
+            next(err);
+        }
     });
 });
 userSchema.methods.isPasswordCorrect = function (password) {
     return __awaiter(this, void 0, void 0, function* () {
-        return yield bcrypt_1.default.compare(password, this.password);
+        if (!this.password) {
+            return false;
+        }
+        console.log('Comparing password:', password, 'with hashed password:', this.password);
+        const isMatch = yield bcrypt_1.default.compare(password, this.password);
+        console.log('Password comparison result:', isMatch);
+        return isMatch;
     });
 };
 const User = mongoose_1.default.model('User', userSchema);

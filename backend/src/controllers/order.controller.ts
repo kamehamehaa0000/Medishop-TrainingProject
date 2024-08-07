@@ -23,6 +23,11 @@ const razorpay = new Razorpay({
 
 const createOrder = asyncHandler(
   async (req: Request | AuthRequest, res: Response) => {
+    const { address } = req.body
+    console.log(address)
+    if (!address) {
+      throw new ApiError(404, 'Enter you address fields ')
+    }
     let userId = (req as AuthRequest).user?.userId || ''
     const cart = await Cart.findOne({ user: userId }).populate('items.product')
     try {
@@ -54,8 +59,12 @@ const createOrder = asyncHandler(
         totalPrice,
         status: 'Pending',
         paymentIntentId: razorpayOrder.id,
+        deliveryAddress: address.address,
+        pincode: address.pinCode,
+        city: address.city,
+        state: address.state,
       })
-
+      console.log(order)
       await order.save()
 
       res.status(200).json(
@@ -71,8 +80,8 @@ const createOrder = asyncHandler(
         )
       )
     } catch (error) {
-      throw new ApiError(500, 'order creation failed')
       console.log(error)
+      throw new ApiError(500, 'order creation failed')
     }
   }
 )

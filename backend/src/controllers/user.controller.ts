@@ -1,14 +1,12 @@
 import asyncHandler from '../utilities/AsyncHandler'
 import ApiError from '../utilities/ErrorHandler'
 import ApiResponse from '../utilities/ResponseHandler'
-import bcrypt from 'bcrypt'
 import { User } from '../models/user.model'
 import jwt from 'jsonwebtoken'
-import { Request, response, Response } from 'express'
+import { Request, Response } from 'express'
 import { z } from 'zod'
 import { uploadToCloudinary } from '../utilities/cloudinaryUtils'
 import { verifyGoogleToken } from '../utilities/Oauth'
-import { nanoid } from 'nanoid'
 interface AuthRequest extends Request {
   user?: { userId: string }
 }
@@ -62,10 +60,12 @@ const userSignup = asyncHandler(async (req: Request, res: Response) => {
   }
 })
 
-const generateUniqueUsername = (displayName: string | undefined) => {
+const generateUniqueUsername = async (displayName: string | undefined) => {
   if (!displayName) {
     displayName = 'newUser'
   }
+  const { nanoid } = await import('nanoid')
+
   displayName = displayName.split(' ')[0]
   return `${displayName}-${nanoid(5)}`
 }
@@ -85,7 +85,7 @@ const googleLogin = asyncHandler(async (req: Request, res: Response) => {
       picture,
     } = payload
 
-    const username = generateUniqueUsername(name)
+    const username = await generateUniqueUsername(name)
 
     let user = await User.findOne({ email })
     if (!user) {
