@@ -53,6 +53,7 @@ const getProductById = asyncHandler(async (req: Request, res: Response) => {
 
 const createProduct = asyncHandler(async (req: Request, res: Response) => {
   try {
+    console.log('File received:', req.file)
     const file = (req.file as Express.Multer.File) || undefined
     if (!file) {
       throw new ApiError(400, 'Image file is required')

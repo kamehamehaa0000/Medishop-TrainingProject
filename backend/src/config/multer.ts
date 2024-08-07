@@ -1,8 +1,13 @@
 import multer from 'multer'
 import path from 'path'
+import fs from 'fs'
 import os from 'os'
 
-const tempDir = os.tmpdir()
+const tempDir = path.join(os.tmpdir(), 'uploads')
+
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true })
+}
 
 const diskStorage = multer.diskStorage({
   destination: function (req, file, callback) {
